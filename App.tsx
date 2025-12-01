@@ -451,15 +451,20 @@ export default function App() {
   };
 
   const handleSaveHTML = () => {
-     // Save as "native" HTML format
-     if (window.saveAs) {
-         const blob = new Blob([editorContent], { type: "text/html;charset=utf-8" });
-         window.saveAs(blob, `${documentTitle}.html`);
-         // Blob будет автоматически освобожден браузером после скачивания
-         setShowFileMenu(false);
-     } else {
-         alert("Libraries not loaded yet.");
-     }
+     // Open HTML in new tab instead of downloading
+     const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${documentTitle}</title></head><body>${editorContent}</body></html>`;
+     const blob = new Blob([fullHTML], { type: "text/html;charset=utf-8" });
+     const url = URL.createObjectURL(blob);
+     const newWindow = window.open(url, '_blank');
+     // Освобождаем URL после открытия (с небольшой задержкой для надежности)
+     setTimeout(() => {
+         if (newWindow) {
+             newWindow.onload = () => URL.revokeObjectURL(url);
+         } else {
+             URL.revokeObjectURL(url);
+         }
+     }, 1000);
+     setShowFileMenu(false);
   };
 
   const handleExport = (format: 'pdf' | 'doc' | 'docx') => {
@@ -476,12 +481,28 @@ export default function App() {
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         if (window.html2pdf) {
-            window.html2pdf().set(opt).from(element).save();
+            // Используем output для получения blob вместо прямого сохранения
+            window.html2pdf().set(opt).from(element).output('blob').then((pdfBlob: Blob) => {
+                const url = URL.createObjectURL(pdfBlob);
+                const newWindow = window.open(url, '_blank');
+                // Освобождаем URL после открытия
+                setTimeout(() => {
+                    if (newWindow) {
+                        newWindow.onload = () => URL.revokeObjectURL(url);
+                    } else {
+                        URL.revokeObjectURL(url);
+                    }
+                }, 1000);
+            }).catch((err: any) => {
+                console.error('PDF generation error:', err);
+                // Fallback к обычному сохранению при ошибке
+                window.html2pdf().set(opt).from(element).save();
+            });
         } else {
             alert('Библиотека PDF не загружена.');
         }
     } else if (format === 'doc') {
-        // Save as standard HTML with Word MIME type (Simple and effective for opening in Word)
+        // Open in new tab instead of downloading
         const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
             "xmlns:w='urn:schemas-microsoft-com:office:word' "+
             "xmlns='http://www.w3.org/TR/REC-html40'>"+
@@ -489,25 +510,34 @@ export default function App() {
         const footer = "</body></html>";
         const sourceHTML = header + editorContent + footer;
         
-        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
-        const fileDownload = document.createElement("a");
-        document.body.appendChild(fileDownload);
-        fileDownload.href = source;
-        fileDownload.download = `${filename}.doc`;
-        fileDownload.click();
-        // Удаляем элемент и очищаем ссылку после скачивания
+        const blob = new Blob([sourceHTML], { type: "application/msword" });
+        const url = URL.createObjectURL(blob);
+        const newWindow = window.open(url, '_blank');
+        // Освобождаем URL после открытия
         setTimeout(() => {
-            document.body.removeChild(fileDownload);
-            fileDownload.href = '';
-        }, 100);
+            if (newWindow) {
+                newWindow.onload = () => URL.revokeObjectURL(url);
+            } else {
+                URL.revokeObjectURL(url);
+            }
+        }, 1000);
 
     } else if (format === 'docx') {
         // Use html-docx-js to generate a real docx
-        if (window.htmlDocx && window.saveAs) {
+        if (window.htmlDocx) {
              const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${editorContent}</body></html>`;
              const converted = window.htmlDocx.asBlob(html);
-             window.saveAs(converted, `${filename}.docx`);
-             // Blob будет автоматически освобожден браузером после скачивания
+             // Открываем в новой вкладке вместо скачивания
+             const url = URL.createObjectURL(converted);
+             const newWindow = window.open(url, '_blank');
+             // Освобождаем URL после открытия
+             setTimeout(() => {
+                 if (newWindow) {
+                     newWindow.onload = () => URL.revokeObjectURL(url);
+                 } else {
+                     URL.revokeObjectURL(url);
+                 }
+             }, 1000);
         } else {
              alert('Библиотека DOCX не загружена.');
         }
