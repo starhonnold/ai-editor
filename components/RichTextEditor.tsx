@@ -805,31 +805,104 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
   };
 
   const insertTable = (rows: number, cols: number) => {
-    // Restore selection to ensure table is inserted at cursor
-    if (savedTableSelection) {
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-            selection.addRange(savedTableSelection);
+    if (!editorRef.current) return;
+    
+    // Фокусируем редактор
+    editorRef.current.focus();
+    
+    // Небольшая задержка для гарантии фокуса
+    setTimeout(() => {
+      const selection = window.getSelection();
+      let range: Range | null = null;
+      
+      // Пытаемся восстановить сохраненное выделение
+      if (savedTableSelection) {
+        try {
+          // Проверяем, что выделение все еще валидно
+          if (editorRef.current && 
+              editorRef.current.contains(savedTableSelection.startContainer) &&
+              editorRef.current.contains(savedTableSelection.endContainer)) {
+            range = savedTableSelection.cloneRange();
+          }
+        } catch (e) {
+          // Выделение больше не валидно, создаем новое
         }
-    } else {
-        editorRef.current?.focus();
-    }
-
-    let tableHTML = '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;"><tbody>';
-    for (let i = 0; i < rows; i++) {
+      }
+      
+      // Если нет валидного выделения, создаем новое в позиции курсора
+      if (!range) {
+        range = document.createRange();
+        if (selection && selection.rangeCount > 0) {
+          range = selection.getRangeAt(0).cloneRange();
+        } else {
+          // Если нет выделения, вставляем в конец
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false);
+        }
+      }
+      
+      // Устанавливаем выделение
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      
+      // Создаем HTML таблицы
+      let tableHTML = '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;"><tbody>';
+      for (let i = 0; i < rows; i++) {
         tableHTML += '<tr>';
         for (let j = 0; j < cols; j++) {
-            tableHTML += `<td style="border: 1px solid #d1d5db; padding: 8px; min-width: 20px;">&nbsp;</td>`;
+          tableHTML += `<td style="border: 1px solid #d1d5db; padding: 8px; min-width: 20px;">&nbsp;</td>`;
         }
         tableHTML += '</tr>';
-    }
-    tableHTML += '</tbody></table><p><br/></p>';
-    
-    document.execCommand('insertHTML', false, tableHTML);
-    setShowTableGrid(false);
-    setSavedTableSelection(null);
-    handleInput();
+      }
+      tableHTML += '</tbody></table>';
+      
+      // Пытаемся использовать insertHTML, если не работает - используем прямое вставление
+      try {
+        const success = document.execCommand('insertHTML', false, tableHTML);
+        if (!success) {
+          // Альтернативный метод: создаем элемент и вставляем
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = tableHTML;
+          const table = tempDiv.firstElementChild as HTMLTableElement;
+          
+          if (range) {
+            range.deleteContents();
+            range.insertNode(table);
+            
+            // Перемещаем курсор после таблицы
+            const newRange = document.createRange();
+            newRange.setStartAfter(table);
+            newRange.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(newRange);
+          }
+        }
+      } catch (e) {
+        // Если execCommand не работает, используем прямое вставление
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = tableHTML;
+        const table = tempDiv.firstElementChild as HTMLTableElement;
+        
+        if (range) {
+          range.deleteContents();
+          range.insertNode(table);
+          
+          // Перемещаем курсор после таблицы
+          const newRange = document.createRange();
+          newRange.setStartAfter(table);
+          newRange.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(newRange);
+        }
+      }
+      
+      setShowTableGrid(false);
+      setSavedTableSelection(null);
+      handleInput();
+      handleSelectionChange();
+    }, 10);
   };
 
   const modifyTable = (action: 'addRowAbove' | 'addRowBelow' | 'addColLeft' | 'addColRight' | 'deleteRow' | 'deleteCol' | 'deleteTable') => {
@@ -1189,12 +1262,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
       
       // Первая строка
       if (settings.firstLineIndent > 0) {
-        p.style.paddingLeft = `${cmToPx(settings.firstLineIndent)}px`;
-        p.style.textIndent = '0';
-      } else if (settings.firstLineIndent < 0) {
-        p.style.textIndent = `${cmToPx(Math.abs(settings.firstLineIndent))}px`;
+        // Отступ первой строки (красная строка) - положительный text-indent
+        p.style.textIndent = `${cmToPx(settings.firstLineIndent)}px`;
         p.style.paddingLeft = '0';
+      } else if (settings.firstLineIndent < 0) {
+        // Выступ первой строки (висячий отступ) - отрицательный text-indent + padding-left
+        const indentValue = Math.abs(settings.firstLineIndent);
+        p.style.textIndent = `-${cmToPx(indentValue)}px`;
+        p.style.paddingLeft = `${cmToPx(indentValue)}px`;
       } else {
+        // Нет отступа первой строки
         p.style.textIndent = '0';
         p.style.paddingLeft = '0';
       }
