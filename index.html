@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Word Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Import Library for reading DOCX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Merriweather', 'serif'],
+            },
+            colors: {
+              primary: '#2563eb', // blue-600
+              paper: '#ffffff',
+              'paper-dark': '#1e293b', // slate-800
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Custom scrollbar for webkit */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
+      
+      /* Editor specifics */
+      .editor-content:focus {
+        outline: none;
+      }
+      .editor-content {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        word-break: break-word;
+      }
+      
+      /* Typography Defaults inside Editor */
+      .editor-content h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; margin-top: 0.5em; }
+      .editor-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; margin-top: 0.5em; }
+      .editor-content h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; margin-top: 0.5em; }
+      .editor-content p { margin-bottom: 1em; }
+      .editor-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1em; }
+      .editor-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1em; }
+      .editor-content blockquote { border-left: 4px solid #cbd5e1; padding-left: 1rem; font-style: italic; margin-bottom: 1em; }
+      
+      /* Responsive Content Overrides to prevent overflow */
+      .editor-content img, .editor-content video {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      .editor-content table {
+        display: block;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto;
+        border-collapse: collapse;
+      }
+      .editor-content * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Placeholder style */
+      .editor-content:empty::before {
+        content: attr(data-placeholder);
+        color: #9ca3af; /* text-gray-400 */
+        pointer-events: none;
+        display: block;
+        font-style: italic;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 dark:bg-zinc-900 text-gray-900 dark:text-gray-100 transition-colors duration-200 overflow-hidden">
+    <div id="root" class="h-screen w-screen flex flex-col"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

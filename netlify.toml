@@ -1,0 +1,39 @@
+# Netlify Configuration для AI Word Editor SPA
+
+[build]
+  # Команда для сборки приложения
+  command = "npm run build"
+  # Директория с собранными файлами (Vite создает dist)
+  publish = "dist"
+
+# Настройки для SPA - все запросы перенаправляются на index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Настройки безопасности заголовков
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Кеширование статических файлов
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Не кешировать HTML файлы
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Настройки для функций (если понадобятся в будущем)
+[functions]
+  node_bundler = "esbuild"
+

@@ -1,0 +1,5 @@
+{
+  "name": "AI Word Editor",
+  "description": "Smart text editor with Gemini and vLLM integration, knowledge base RAG, and styling capabilities.",
+  "requestFramePermissions": []
+}
