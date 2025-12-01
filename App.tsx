@@ -640,6 +640,10 @@ export default function App() {
              onInsertImage={handleInsertImage}
              onReplaceContent={handleReplaceContent}
              onClose={() => setAssistantOpen(false)}
+             onClearChat={() => {
+               setChatMessages([]);
+               userStorage.setItem('chat_messages', JSON.stringify([]));
+             }}
            />
         </div>
       )}

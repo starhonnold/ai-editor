@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Image as ImageIcon, Loader2, Sparkles, User, Bot, X, FilePenLine, Copy, CheckCircle2 } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2, Sparkles, User, Bot, X, FilePenLine, Copy, CheckCircle2, Trash2 } from 'lucide-react';
 import { ChatMessage, UploadedFile } from '../types';
 
 interface AssistantProps {
@@ -10,9 +10,10 @@ interface AssistantProps {
   onInsertImage: (base64: string) => void;
   onReplaceContent: (text: string) => void;
   onClose?: () => void;
+  onClearChat?: () => void;
 }
 
-const Assistant: React.FC<AssistantProps> = ({ messages, isThinking, onSendMessage, onInsertText, onInsertImage, onReplaceContent, onClose }) => {
+const Assistant: React.FC<AssistantProps> = ({ messages, isThinking, onSendMessage, onInsertText, onInsertImage, onReplaceContent, onClose, onClearChat }) => {
   const [input, setInput] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -59,14 +60,25 @@ const Assistant: React.FC<AssistantProps> = ({ messages, isThinking, onSendMessa
           <Sparkles className="text-blue-500 w-5 h-5" />
           AI Помощник
         </h2>
-        {onClose && (
-          <button 
-            onClick={onClose} 
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-700 md:hidden"
-          >
-            <X size={20} className="text-gray-500" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onClearChat && messages.length > 0 && (
+            <button 
+              onClick={onClearChat} 
+              className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              title="Очистить чат"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+          {onClose && (
+            <button 
+              onClick={onClose} 
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-700 md:hidden"
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
