@@ -1344,10 +1344,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
                    onChange={(e) => exec('fontName', e.target.value)} 
                    className="w-24 sm:w-32 h-8 sm:h-9 text-xs sm:text-sm border border-gray-200 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 px-2 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                    onMouseDown={(e) => e.stopPropagation()} // Allow interaction
+                   defaultValue="Times New Roman"
                  >
+                    <option value="Times New Roman">Times New Roman</option>
                     <option value="Inter">Inter</option>
                     <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times New Roman</option>
                     <option value="Courier New">Courier New</option>
                     <option value="Georgia">Georgia</option>
                     <option value="Verdana">Verdana</option>

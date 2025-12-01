@@ -392,13 +392,24 @@ export default function App() {
                         setDocumentTitle(file.name.replace(/\.docx$/i, ''));
                         setEditorKey(prev => prev + 1); // Force re-render
                         setShowFileMenu(false);
+                        // Очищаем input после обработки
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
                     })
                     .catch((err: any) => {
                         console.error(err);
                         alert("Ошибка при чтении файла Word.");
+                        // Очищаем input даже при ошибке
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
                     });
             } else {
                 alert("Библиотека Mammoth не загружена.");
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             }
          };
          reader.readAsArrayBuffer(file);
@@ -413,6 +424,10 @@ export default function App() {
         // Basic check for binary data to prevent loading garbage
         if (content.includes('\0')) {
              alert("Формат .doc (бинарный) не поддерживается в браузере. Пожалуйста, используйте .docx или текстовые файлы.");
+             // Очищаем input при ошибке
+             if (fileInputRef.current) {
+                 fileInputRef.current.value = '';
+             }
              return;
         }
         
@@ -426,6 +441,10 @@ export default function App() {
         setDocumentTitle(file.name.replace(/\.(html|txt|doc|docx)$/i, ''));
         setEditorKey(prev => prev + 1); // Force re-render
         setShowFileMenu(false);
+        // Очищаем input после обработки
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
       };
       reader.readAsText(file);
     }
@@ -436,6 +455,7 @@ export default function App() {
      if (window.saveAs) {
          const blob = new Blob([editorContent], { type: "text/html;charset=utf-8" });
          window.saveAs(blob, `${documentTitle}.html`);
+         // Blob будет автоматически освобожден браузером после скачивания
          setShowFileMenu(false);
      } else {
          alert("Libraries not loaded yet.");
@@ -475,7 +495,11 @@ export default function App() {
         fileDownload.href = source;
         fileDownload.download = `${filename}.doc`;
         fileDownload.click();
-        document.body.removeChild(fileDownload);
+        // Удаляем элемент и очищаем ссылку после скачивания
+        setTimeout(() => {
+            document.body.removeChild(fileDownload);
+            fileDownload.href = '';
+        }, 100);
 
     } else if (format === 'docx') {
         // Use html-docx-js to generate a real docx
@@ -483,6 +507,7 @@ export default function App() {
              const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${editorContent}</body></html>`;
              const converted = window.htmlDocx.asBlob(html);
              window.saveAs(converted, `${filename}.docx`);
+             // Blob будет автоматически освобожден браузером после скачивания
         } else {
              alert('Библиотека DOCX не загружена.');
         }
