@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Book, FileText, Upload, Trash2, RefreshCw, Sun, Moon, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Settings, Book, FileText, Upload, Trash2, RefreshCw, Sun, Moon, AlertCircle, ChevronDown, ChevronRight, GraduationCap } from 'lucide-react';
 import { AIConfig, KnowledgeBaseItem, ModelProvider } from '../types';
 import { fetchVLLMModels } from '../services/aiService';
 import { DEFAULT_GEMINI_MODELS } from '../constants';
@@ -17,9 +17,10 @@ interface SidebarProps {
     charCount: number;
     lastSaved: Date | null;
   };
+  onRestartOnboarding?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ config, onConfigChange, kbItems, onAddKB, onRemoveKB, isDark, toggleTheme, stats }) => {
+const Sidebar: React.FC<SidebarProps> = ({ config, onConfigChange, kbItems, onAddKB, onRemoveKB, isDark, toggleTheme, stats, onRestartOnboarding }) => {
   const [activeTab, setActiveTab] = useState<'settings' | 'knowledge'>('knowledge');
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -170,7 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ config, onConfigChange, kbItems, onAd
              <div>
                <SectionHeader title="Внешний вид" id="appearance" />
                {expanded.appearance && (
-                   <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                   <div className="animate-in fade-in slide-in-from-top-1 duration-200 space-y-2">
                         <button 
                             onClick={toggleTheme}
                             className="w-full flex items-center justify-between p-2 bg-white dark:bg-zinc-800 rounded border border-gray-200 dark:border-zinc-700"
@@ -178,6 +179,15 @@ const Sidebar: React.FC<SidebarProps> = ({ config, onConfigChange, kbItems, onAd
                             <span className="text-sm">Тема</span>
                             {isDark ? <Moon size={16}/> : <Sun size={16}/>}
                         </button>
+                        {onRestartOnboarding && (
+                          <button 
+                            onClick={onRestartOnboarding}
+                            className="w-full flex items-center justify-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                          >
+                            <GraduationCap size={16} />
+                            <span className="text-sm">Повторить туториал</span>
+                          </button>
+                        )}
                    </div>
                )}
              </div>

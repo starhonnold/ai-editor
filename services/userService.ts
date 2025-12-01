@@ -201,3 +201,31 @@ export const userStorage = {
   }
 };
 
+// Проверить, прошел ли пользователь онбординг
+export function hasCompletedOnboarding(): boolean {
+  try {
+    const completed = userStorage.getItem('onboarding_completed');
+    return completed === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+// Отметить онбординг как пройденный
+export function markOnboardingComplete(): void {
+  try {
+    userStorage.setItem('onboarding_completed', 'true');
+  } catch (e) {
+    console.error("Failed to mark onboarding complete", e);
+  }
+}
+
+// Сбросить онбординг (для повторного запуска)
+export function resetOnboarding(): void {
+  try {
+    userStorage.removeItem('onboarding_completed');
+  } catch (e) {
+    console.error("Failed to reset onboarding", e);
+  }
+}
+

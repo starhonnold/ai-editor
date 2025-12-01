@@ -4,9 +4,10 @@ import Sidebar from './components/Sidebar';
 import Assistant from './components/Assistant';
 import RichTextEditor from './components/RichTextEditor';
 import UserSelector from './components/UserSelector';
+import Onboarding from './components/Onboarding';
 import { AIConfig, ChatMessage, KnowledgeBaseItem, UploadedFile, AIResponse } from './types';
 import { generateGeminiResponse, generateGeminiImage, generateVLLMResponse, rewriteText, generateDeterministicChart, generateDeterministicTable, translateText } from './services/aiService';
-import { userStorage } from './services/userService';
+import { userStorage, hasCompletedOnboarding, markOnboardingComplete, resetOnboarding } from './services/userService';
 import { DEFAULT_GEMINI_MODELS } from './constants';
 import { Menu, X, Download, FileText, FileType, File, FilePlus, FolderOpen, Save, ChevronRight } from 'lucide-react';
 
@@ -129,7 +130,27 @@ export default function App() {
   const [isAssistantOpen, setAssistantOpen] = useState(true); // AI помощник открыт по умолчанию
   const [showFileMenu, setShowFileMenu] = useState(false);
   
+  // Онбординг
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !hasCompletedOnboarding();
+  });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOnboardingComplete = () => {
+    markOnboardingComplete();
+    setShowOnboarding(false);
+  };
+
+  const handleOnboardingSkip = () => {
+    markOnboardingComplete();
+    setShowOnboarding(false);
+  };
+
+  const handleRestartOnboarding = () => {
+    resetOnboarding();
+    setShowOnboarding(true);
+  };
 
   // Боковая панель скрыта по умолчанию
   // AI помощник открыт по умолчанию
@@ -470,6 +491,13 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-black text-slate-900 dark:text-slate-100 font-sans">
+      {/* Onboarding Overlay */}
+      {showOnboarding && (
+        <Onboarding 
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+      )}
       
       {/* Sidebar - Slide out on Mobile, Collapsible on Desktop */}
       <div className={`
@@ -480,7 +508,9 @@ export default function App() {
         ${isSidebarOpen ? 'md:w-80' : 'md:w-0 md:border-none'}
         md:overflow-hidden
         bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-700
-      `}>
+      `}
+      data-onboarding="sidebar"
+      >
          <Sidebar 
            config={config} 
            onConfigChange={setConfig} 
@@ -494,6 +524,7 @@ export default function App() {
              charCount: stats.chars,
              lastSaved: lastSaved
            }}
+           onRestartOnboarding={handleRestartOnboarding}
          />
          <button 
             onClick={() => setSidebarOpen(false)} 
@@ -514,6 +545,7 @@ export default function App() {
                  <button 
                      onClick={() => setShowFileMenu(!showFileMenu)}
                      className="flex items-center gap-1 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-md text-sm font-medium transition-colors"
+                     data-onboarding="file-menu"
                  >
                      <span className="font-semibold text-blue-600 dark:text-blue-400">Файл</span>
                  </button>
@@ -575,17 +607,19 @@ export default function App() {
            {/* Overlay for File Menu click outside */}
            {showFileMenu && <div className="fixed inset-0 z-40" onClick={() => setShowFileMenu(false)}></div>}
            
-           <RichTextEditor 
-             key={editorKey}
-             initialContent={editorContent} 
-             onChange={setEditorContent} 
-             className="h-full w-full"
-             triggerReplace={triggerReplace}
-             triggerInsertHtml={triggerInsertHtml}
-             onSmartEdit={handleSmartEdit}
-             onGenerateImage={handleGenerateInlineImage}
-             onTranslate={handleTranslateInline}
-           />
+           <div data-onboarding="editor" className="h-full w-full">
+             <RichTextEditor 
+               key={editorKey}
+               initialContent={editorContent} 
+               onChange={setEditorContent} 
+               className="h-full w-full"
+               triggerReplace={triggerReplace}
+               triggerInsertHtml={triggerInsertHtml}
+               onSmartEdit={handleSmartEdit}
+               onGenerateImage={handleGenerateInlineImage}
+               onTranslate={handleTranslateInline}
+             />
+           </div>
         </main>
       </div>
 
@@ -595,7 +629,9 @@ export default function App() {
           fixed inset-0 z-50 bg-white dark:bg-zinc-800 
           md:relative md:inset-auto md:w-96 md:shrink-0 md:border-l md:border-gray-200 md:dark:border-zinc-700 md:z-40
           shadow-xl flex flex-col
-        `}>
+        `}
+        data-onboarding="assistant"
+        >
            <Assistant 
              messages={chatMessages}
              isThinking={isThinking}

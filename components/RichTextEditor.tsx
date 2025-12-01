@@ -8,7 +8,6 @@ import {
   Heading1, Heading2, Heading3,
   Palette, Highlighter, Eraser,
   Subscript, Superscript,
-  PanelTop,
   Sparkles,
   ArrowRight,
   Table as TableIcon,
@@ -32,6 +31,7 @@ import {
   Minimize2,
   Maximize2
 } from 'lucide-react';
+import ParagraphDialog from './ParagraphDialog';
 
 interface RichTextEditorProps {
   initialContent: string;
@@ -102,137 +102,6 @@ const ToolbarDivider = () => (
     <div className="w-px h-5 sm:h-6 bg-gray-300 dark:bg-zinc-700 mx-1 shrink-0 self-center" />
 );
 
-interface HorizontalRulerProps {
-    margins: Margins;
-    onMarginChange: (type: 'left' | 'right', value: number) => void;
-}
-
-const HorizontalRuler: React.FC<HorizontalRulerProps> = ({ margins, onMarginChange }) => {
-    const rulerRef = useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState<'left' | 'right' | null>(null);
-
-    const handleMouseDown = (e: React.MouseEvent, type: 'left' | 'right') => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(type);
-    };
-
-    const handleMouseMove = useCallback((e: MouseEvent) => {
-        if (!isDragging || !rulerRef.current) return;
-
-        const rect = rulerRef.current.getBoundingClientRect();
-        const relativeX = e.clientX - rect.left;
-        
-        // Convert px to mm
-        const widthMM = PAGE_WIDTH_MM;
-        const widthPX = rect.width;
-        const mmPerPx = widthMM / widthPX;
-        
-        let val = relativeX * mmPerPx;
-
-        if (isDragging === 'left') {
-            // Constraints: Min 10mm, Max must not cross right margin
-            val = Math.max(10, Math.min(val, PAGE_WIDTH_MM - margins.right - 20));
-            onMarginChange('left', Math.round(val));
-        } else {
-            // Right margin is calculated from the RIGHT edge
-            const distFromRight = PAGE_WIDTH_MM - val;
-            const newRight = Math.max(10, Math.min(distFromRight, PAGE_WIDTH_MM - margins.left - 20));
-            onMarginChange('right', Math.round(newRight));
-        }
-    }, [isDragging, margins, onMarginChange]);
-
-    const handleMouseUp = useCallback(() => {
-        setIsDragging(null);
-    }, []);
-
-    useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isDragging, handleMouseMove, handleMouseUp]);
-
-    // Generate ticks
-    const ticks = [];
-    for (let i = 0; i <= PAGE_WIDTH_MM; i++) {
-        if (i % 10 === 0) {
-            ticks.push(<div key={i} className="absolute bottom-0 border-l border-gray-400 h-2.5" style={{ left: `${(i/PAGE_WIDTH_MM)*100}%` }}><span className="absolute top-[-12px] left-[-3px] text-[8px] text-gray-500 font-mono select-none">{i/10}</span></div>);
-        } else if (i % 5 === 0) {
-            ticks.push(<div key={i} className="absolute bottom-0 border-l border-gray-300 h-1.5" style={{ left: `${(i/PAGE_WIDTH_MM)*100}%` }}></div>);
-        }
-    }
-
-    return (
-        <div ref={rulerRef} className="w-[210mm] h-6 bg-gray-50 dark:bg-zinc-800 border-b border-gray-300 dark:border-zinc-600 relative select-none shrink-0 cursor-default hidden md:block">
-            {/* Ticks Container */}
-            <div className="absolute inset-0 pointer-events-none">
-                {ticks}
-            </div>
-
-            {/* Left Margin Shadow */}
-            <div className="absolute left-0 top-0 h-full bg-gray-200 dark:bg-zinc-700/50 opacity-50 pointer-events-none" style={{ width: `${(margins.left/PAGE_WIDTH_MM)*100}%` }} />
-            
-            {/* Right Margin Shadow */}
-            <div className="absolute right-0 top-0 h-full bg-gray-200 dark:bg-zinc-700/50 opacity-50 pointer-events-none" style={{ width: `${(margins.right/PAGE_WIDTH_MM)*100}%` }} />
-
-            {/* Left Marker */}
-            <div 
-                onMouseDown={(e) => handleMouseDown(e, 'left')}
-                className="absolute top-0 cursor-ew-resize z-10 hover:scale-110 transition-transform"
-                style={{ left: `${(margins.left/PAGE_WIDTH_MM)*100}%`, transform: 'translateX(-50%)' }}
-                title={`Left Margin: ${margins.left}mm`}
-            >
-                <svg width="12" height="24" viewBox="0 0 12 24" className="drop-shadow-sm">
-                    <path d="M0,0 L12,0 L12,12 L6,18 L0,12 Z" fill="#3b82f6" />
-                </svg>
-            </div>
-
-            {/* Right Marker */}
-            <div 
-                onMouseDown={(e) => handleMouseDown(e, 'right')}
-                className="absolute top-0 cursor-ew-resize z-10 hover:scale-110 transition-transform"
-                style={{ right: `${(margins.right/PAGE_WIDTH_MM)*100}%`, transform: 'translateX(50%)' }}
-                title={`Right Margin: ${margins.right}mm`}
-            >
-                 <svg width="12" height="24" viewBox="0 0 12 24" className="drop-shadow-sm">
-                    <path d="M0,0 L12,0 L12,12 L6,18 L0,12 Z" fill="#3b82f6" />
-                </svg>
-            </div>
-        </div>
-    );
-};
-
-const VerticalRuler: React.FC = () => {
-    const ticks = [];
-    // Generate ticks for a very large potential height to simulate infinite scroll
-    // 5000mm is approx 17 pages. Overflow is hidden by the container.
-    const MAX_HEIGHT_MM = 5000; 
-    
-    for (let i = 0; i <= MAX_HEIGHT_MM; i++) {
-        if (i % 10 === 0) {
-            ticks.push(
-                <div key={i} className="absolute right-0 border-t border-gray-400 w-2.5" style={{ top: `${i}mm` }}>
-                    <span className="absolute left-[-14px] top-[-5px] text-[8px] text-gray-500 font-mono select-none w-3 text-right">{i/10}</span>
-                </div>
-            );
-        } else if (i % 5 === 0) {
-            ticks.push(<div key={i} className="absolute right-0 border-t border-gray-300 w-1.5" style={{ top: `${i}mm` }}></div>);
-        }
-    }
-
-    return (
-        <div className="w-4 min-h-[297mm] h-full bg-gray-50 dark:bg-zinc-800 border-r border-gray-300 dark:border-zinc-600 relative select-none shrink-0 hidden md:block overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[5000mm]">
-                {ticks}
-            </div>
-        </div>
-    );
-};
 
 // --- Main Component ---
 
@@ -240,7 +109,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [margins, setMargins] = useState<Margins>({ left: 25, right: 25, top: 25, bottom: 25 });
-  const [showRuler, setShowRuler] = useState(true);
+  const [isParagraphDialogOpen, setIsParagraphDialogOpen] = useState(false);
   
   // Smart Edit State
   const [selectionRect, setSelectionRect] = useState<DOMRect | null>(null);
@@ -1159,6 +1028,199 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
       setIsSmartEditOpen(false);
   };
 
+  // Получить текущие настройки абзаца из выделения
+  const getCurrentParagraphSettings = () => {
+    if (!editorRef.current) return undefined;
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return undefined;
+    
+    const range = selection.getRangeAt(0);
+    let element: HTMLElement | null = null;
+    
+    // Находим элемент абзаца
+    if (range.startContainer.nodeType === Node.TEXT_NODE) {
+      element = range.startContainer.parentElement;
+    } else {
+      element = range.startContainer as HTMLElement;
+    }
+    
+    while (element && element !== editorRef.current) {
+      if (element.tagName === 'P' || element.tagName === 'DIV' || element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3') {
+        break;
+      }
+      element = element.parentElement;
+    }
+    
+    if (!element) return undefined;
+    
+    const style = window.getComputedStyle(element);
+    const inlineStyle = element.style;
+    
+    // Парсим настройки из стилей
+    const alignment = inlineStyle.textAlign || style.textAlign || 'left';
+    const marginLeft = parseFloat(inlineStyle.marginLeft || style.marginLeft || '0');
+    const marginRight = parseFloat(inlineStyle.marginRight || style.marginRight || '0');
+    const paddingLeft = parseFloat(inlineStyle.paddingLeft || style.paddingLeft || '0');
+    const textIndent = parseFloat(inlineStyle.textIndent || style.textIndent || '0');
+    const marginTop = parseFloat(inlineStyle.marginTop || style.marginTop || '0');
+    const marginBottom = parseFloat(inlineStyle.marginBottom || style.marginBottom || '0');
+    const lineHeight = inlineStyle.lineHeight || style.lineHeight || '1.15';
+    
+    // Конвертация px в см (примерно 1см = 37.8px)
+    const pxToCm = (px: number) => px / 37.8;
+    // Конвертация px в пт (примерно 1пт = 1.33px)
+    const pxToPt = (px: number) => px / 1.33;
+    
+    let firstLineIndent = 0;
+    if (textIndent > 0) {
+      firstLineIndent = pxToCm(textIndent);
+    } else if (paddingLeft > 0) {
+      firstLineIndent = pxToCm(paddingLeft);
+    }
+    
+    let lineSpacing: 'single' | '1.5' | 'double' | 'multiple' | 'atLeast' | 'exactly' = 'multiple';
+    let lineSpacingValue = 1.15;
+    
+    if (lineHeight === '1' || lineHeight === 'normal') {
+      lineSpacing = 'single';
+      lineSpacingValue = 1;
+    } else if (lineHeight === '1.5') {
+      lineSpacing = '1.5';
+      lineSpacingValue = 1.5;
+    } else if (lineHeight === '2') {
+      lineSpacing = 'double';
+      lineSpacingValue = 2;
+    } else {
+      const numValue = parseFloat(lineHeight);
+      if (!isNaN(numValue)) {
+        if (lineHeight.includes('px')) {
+          lineSpacing = 'atLeast';
+          lineSpacingValue = pxToPt(numValue);
+        } else {
+          lineSpacing = 'multiple';
+          lineSpacingValue = numValue;
+        }
+      }
+    }
+    
+    return {
+      alignment: (alignment === 'center' ? 'center' : alignment === 'right' ? 'right' : alignment === 'justify' ? 'justify' : 'left') as any,
+      indentLeft: pxToCm(marginLeft),
+      indentRight: pxToCm(marginRight),
+      firstLineIndent: firstLineIndent,
+      mirrorIndents: false,
+      spacingBefore: pxToPt(marginTop),
+      spacingAfter: pxToPt(marginBottom),
+      lineSpacing: lineSpacing,
+      lineSpacingValue: lineSpacingValue,
+      noSpaceBetweenSameStyle: false
+    };
+  };
+
+  // Применить настройки абзаца
+  const handleParagraphSettingsApply = (settings: any) => {
+    if (!editorRef.current) return;
+    
+    editorRef.current.focus();
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      // Если нет выделения, применяем к текущему абзацу
+      const range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+    
+    const range = selection.getRangeAt(0);
+    
+    // Находим все элементы абзацев в выделении
+    const walker = document.createTreeWalker(
+      editorRef.current,
+      NodeFilter.SHOW_ELEMENT,
+      null
+    );
+    
+    const paragraphs: HTMLElement[] = [];
+    let node: Node | null;
+    
+    while (node = walker.nextNode()) {
+      const element = node as HTMLElement;
+      if (range.intersectsNode(element)) {
+        if (element.tagName === 'P' || element.tagName === 'DIV' || 
+            element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3') {
+          paragraphs.push(element);
+        }
+      }
+    }
+    
+    // Если не нашли абзацы, создаем обертку
+    if (paragraphs.length === 0) {
+      const p = document.createElement('p');
+      try {
+        range.surroundContents(p);
+        paragraphs.push(p);
+      } catch (e) {
+        // Если не удалось обернуть, применяем к родительскому элементу
+        let parent = range.commonAncestorContainer;
+        if (parent.nodeType === Node.TEXT_NODE) {
+          parent = parent.parentElement!;
+        }
+        if (parent && parent !== editorRef.current) {
+          paragraphs.push(parent as HTMLElement);
+        }
+      }
+    }
+    
+    // Конвертация см в пиксели
+    const cmToPx = (cm: number) => cm * 37.8;
+    // Конвертация пт в пиксели
+    const ptToPx = (pt: number) => pt * 1.33;
+    
+    paragraphs.forEach(p => {
+      // Выравнивание
+      p.style.textAlign = settings.alignment;
+      
+      // Отступы
+      p.style.marginLeft = `${cmToPx(settings.indentLeft)}px`;
+      p.style.marginRight = `${cmToPx(settings.indentRight)}px`;
+      
+      // Первая строка
+      if (settings.firstLineIndent > 0) {
+        p.style.paddingLeft = `${cmToPx(settings.firstLineIndent)}px`;
+        p.style.textIndent = '0';
+      } else if (settings.firstLineIndent < 0) {
+        p.style.textIndent = `${cmToPx(Math.abs(settings.firstLineIndent))}px`;
+        p.style.paddingLeft = '0';
+      } else {
+        p.style.textIndent = '0';
+        p.style.paddingLeft = '0';
+      }
+      
+      // Интервалы
+      p.style.marginTop = `${ptToPx(settings.spacingBefore)}px`;
+      p.style.marginBottom = `${ptToPx(settings.spacingAfter)}px`;
+      
+      // Междустрочный интервал
+      if (settings.lineSpacing === 'single') {
+        p.style.lineHeight = '1';
+      } else if (settings.lineSpacing === '1.5') {
+        p.style.lineHeight = '1.5';
+      } else if (settings.lineSpacing === 'double') {
+        p.style.lineHeight = '2';
+      } else if (settings.lineSpacing === 'multiple') {
+        p.style.lineHeight = settings.lineSpacingValue.toString();
+      } else if (settings.lineSpacing === 'atLeast' || settings.lineSpacing === 'exactly') {
+        p.style.lineHeight = `${ptToPx(settings.lineSpacingValue)}px`;
+      }
+    });
+    
+    handleInput();
+    handleSelectionChange();
+  };
+
   const handleTranslateSubmit = async (lang: string) => {
       if (!onTranslate || !savedRange) return;
       setIsSmartEditLoading(true);
@@ -1420,8 +1482,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
               <Heading2 size={18} />
             </ToolbarButton>
             
-            <ToolbarButton onClick={() => setShowRuler(!showRuler)} isActive={showRuler} title="Toggle Ruler">
-              <PanelTop size={18} />
+            <ToolbarDivider />
+            
+            <ToolbarButton onClick={() => setIsParagraphDialogOpen(true)} title="Настройки абзаца">
+              <AlignJustify size={18} />
             </ToolbarButton>
         </div>
 
@@ -1456,20 +1520,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
         )}
       </div>
 
-      {/* Rulers & Editor Area */}
+      {/* Editor Area */}
       <div className="flex-1 overflow-auto bg-white dark:bg-black/20 flex flex-col items-center relative">
-        
-        {/* Horizontal Ruler (Sticky) */}
-        {showRuler && (
-            <div className="sticky top-0 z-10 flex flex-col items-center w-full bg-white dark:bg-black/20">
-                <HorizontalRuler margins={margins} onMarginChange={(type, val) => setMargins(prev => ({ ...prev, [type]: val }))} />
-            </div>
-        )}
-
         <div className="flex w-full justify-center min-h-[calc(100vh-120px)] relative">
-             {/* Vertical Ruler */}
-            {showRuler && <VerticalRuler />}
-
              {/* Paper Container */}
             <div 
                 ref={containerRef}
@@ -1646,6 +1699,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, onChang
                 </div>
             )}
         </div>
+      )}
+
+      {/* Paragraph Dialog */}
+      {isParagraphDialogOpen && (
+        <ParagraphDialog
+          isOpen={isParagraphDialogOpen}
+          onClose={() => setIsParagraphDialogOpen(false)}
+          onApply={handleParagraphSettingsApply}
+          currentSettings={getCurrentParagraphSettings()}
+        />
       )}
     </div>
   );
